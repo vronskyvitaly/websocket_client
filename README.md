@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Chat Client
 
-## Getting Started
+Next.js клиент для чат-приложения с WebSocket поддержкой.
 
-First, run the development server:
+## Разработка
 
+### 1. Запуск сервера (из корневой папки проекта)
 ```bash
+# Установка зависимостей
+npm install
+
+# Сборка TypeScript
+npm run build
+
+# Запуск сервера
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Сервер будет доступен на порту 3002: http://localhost:3002
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 2. Запуск клиента
+```bash
+cd client
+npm install
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Клиент будет доступен по адресу [http://localhost:3000](http://localhost:3000).
 
-## Learn More
+### 3. Тестирование
+1. Откройте http://localhost:3000/chat
+2. Введите имя пользователя
+3. Начните общение в чате
 
-To learn more about Next.js, take a look at the following resources:
+## Деплой на Vercel
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Быстрый деплой
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Перейдите на [vercel.com](https://vercel.com)
+2. Нажмите "New Project"
+3. Подключите ваш репозиторий
+4. Выберите папку `client` как корневую директорию
+5. Добавьте переменную окружения:
+   ```
+   NEXT_PUBLIC_SOCKETIO_URL=https://your-backend-domain.com
+   ```
 
-## Deploy on Vercel
+### Деплой через CLI
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+cd client
+npm install -g vercel
+vercel
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Переменные окружения
+
+- `NEXT_PUBLIC_SOCKETIO_URL` - URL вашего WebSocket сервера
+
+## Сборка
+
+```bash
+npm run build
+```
+
+## Технологии
+
+- Next.js 15
+- React 19
+- TypeScript
+- Tailwind CSS
+- Socket.IO Client
+- Lucide React (иконки)
