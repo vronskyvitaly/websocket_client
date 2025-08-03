@@ -50,6 +50,16 @@ export const useSocketIO = ({
         transports: ['websocket', 'polling'],
         timeout: 20000,
         forceNew: true,
+        // Добавляем настройки для production
+        upgrade: true,
+        rememberUpgrade: true,
+        // Настройки для работы с прокси
+        path: '/socket.io/',
+        // Дополнительные настройки для стабильности
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
       })
 
       socket.current.on('connect', () => {
@@ -62,8 +72,8 @@ export const useSocketIO = ({
         setLastError(null)
       })
 
-      socket.current.on('disconnect', () => {
-        console.log('🔌 Socket.IO disconnected')
+      socket.current.on('disconnect', (reason) => {
+        console.log('🔌 Socket.IO disconnected:', reason)
         setChatState((prev) => ({
           ...prev,
           isConnected: false,
@@ -72,7 +82,7 @@ export const useSocketIO = ({
 
       socket.current.on('connect_error', (error) => {
         console.error('❌ Socket.IO connection error:', error)
-        setLastError('Failed to connect to chat server')
+        setLastError(`Failed to connect to chat server: ${error.message}`)
       })
 
       socket.current.on('connected', (data) => {

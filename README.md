@@ -48,6 +48,18 @@ npm run dev
    NEXT_PUBLIC_SOCKETIO_URL=https://your-backend-domain.com
    ```
 
+### Настройка переменных окружения
+
+Создайте файл `.env.local` в папке `client`:
+
+```bash
+# Для локальной разработки
+NEXT_PUBLIC_SOCKETIO_URL=http://localhost:3002
+
+# Для production (замените на ваш реальный URL сервера)
+# NEXT_PUBLIC_SOCKETIO_URL=https://your-server-domain.com
+```
+
 ### Деплой через CLI
 
 ```bash
@@ -55,6 +67,15 @@ cd client
 npm install -g vercel
 vercel
 ```
+
+### Решение проблем с WebSocket
+
+Если возникают ошибки подключения к WebSocket:
+
+1. Убедитесь, что ваш сервер поддерживает CORS
+2. Проверьте, что URL сервера правильный и доступен
+3. Убедитесь, что сервер работает на HTTPS в production
+4. Проверьте настройки прокси на вашем сервере
 
 ## Переменные окружения
 
