@@ -47,6 +47,9 @@ export const useSocketIO = ({
     try {
       socket.current = io(socketUrl, {
         autoConnect: false,
+        transports: ['websocket', 'polling'],
+        timeout: 20000,
+        forceNew: true
       })
 
       socket.current.on('connect', () => {
@@ -65,6 +68,11 @@ export const useSocketIO = ({
           ...prev,
           isConnected: false,
         }))
+      })
+
+      socket.current.on('connect_error', (error) => {
+        console.error('❌ Socket.IO connection error:', error)
+        setLastError('Failed to connect to chat server')
       })
 
       socket.current.on('connected', (data) => {
