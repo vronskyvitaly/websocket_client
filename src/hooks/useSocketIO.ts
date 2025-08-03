@@ -49,7 +49,7 @@ export const useSocketIO = ({
         autoConnect: false,
         transports: ['websocket', 'polling'],
         timeout: 20000,
-        forceNew: true
+        forceNew: true,
       })
 
       socket.current.on('connect', () => {
