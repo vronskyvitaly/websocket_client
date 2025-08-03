@@ -1,7 +1,7 @@
 'use client'
 
-import { useWebSocket } from '@/hooks/useWebSocket'
-import { WebSocketMessage } from '@/types/websocket'
+import { useSocketIO } from '@/hooks/useSocketIO'
+import { ChatMessage } from '@/types/websocket'
 import {
   ArrowRight,
   MessageCircle,
@@ -15,27 +15,22 @@ import {
   Zap,
 } from 'lucide-react'
 import Link from 'next/link'
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 
 export default function Home() {
-  const [serverUrl, setServerUrl] = useState('ws://localhost:3002')
   const [broadcastMessage, setBroadcastMessage] = useState('')
   const [echoMessage, setEchoMessage] = useState('')
 
   const {
-    connectionState,
-    messages,
+    chatState,
     lastError,
     connect,
     disconnect,
     sendMessage,
     clearMessages,
     clearError,
-  } = useWebSocket({
-    url: serverUrl,
-    onMessage: useCallback((message: WebSocketMessage) => {
-      console.log('Received message in component:', message)
-    }, []),
+  } = useSocketIO({
+    autoConnect: false,
   })
 
   const handleConnect = () => {
@@ -44,25 +39,27 @@ export default function Home() {
   }
 
   const handlePing = () => {
-    sendMessage({ type: 'ping', data: {} })
+    // Socket.IO doesn't have ping/pong, so we'll send a test message
+    sendMessage('Ping test message', 'text')
   }
 
   const handleEcho = () => {
     if (echoMessage.trim()) {
-      sendMessage({ type: 'echo', data: { message: echoMessage } })
+      sendMessage(`Echo: ${echoMessage}`, 'text')
       setEchoMessage('')
     }
   }
 
   const handleBroadcast = () => {
     if (broadcastMessage.trim()) {
-      sendMessage({ type: 'broadcast', data: { message: broadcastMessage } })
+      sendMessage(`Broadcast: ${broadcastMessage}`, 'text')
       setBroadcastMessage('')
     }
   }
 
   const handleGetClients = () => {
-    sendMessage({ type: 'get_clients', data: {} })
+    // This will be handled by the chat state
+    console.log('Connected users:', chatState.users)
   }
 
   const formatTime = (date: Date | null) => {
@@ -144,16 +141,11 @@ export default function Home() {
             </h2>
 
             <div className='flex gap-4 mb-4'>
-              <input
-                type='text'
-                value={serverUrl}
-                onChange={(e) => setServerUrl(e.target.value)}
-                placeholder='WebSocket URL'
-                className='flex-1 px-4 py-2 text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
-                disabled={connectionState.isConnected}
-              />
+              <div className='flex-1 px-4 py-2 text-black border border-gray-300 rounded-lg bg-gray-100'>
+                Socket.IO Server (localhost:3002)
+              </div>
 
-              {connectionState.isConnected ? (
+              {chatState.isConnected ? (
                 <button
                   onClick={disconnect}
                   className='px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center gap-2'
@@ -178,27 +170,25 @@ export default function Home() {
                 <div className='font-semibold text-gray-600'>Status</div>
                 <div
                   className={`font-bold ${
-                    connectionState.isConnected
-                      ? 'text-green-600'
-                      : 'text-red-600'
+                    chatState.isConnected ? 'text-green-600' : 'text-red-600'
                   }`}
                 >
-                  {connectionState.isConnected ? 'Connected' : 'Disconnected'}
+                  {chatState.isConnected ? 'Connected' : 'Disconnected'}
                 </div>
               </div>
               <div className='bg-gray-50 text-black p-3 rounded'>
-                <div className='font-semibold text-gray-600'>Client ID</div>
+                <div className='font-semibold text-gray-600'>User ID</div>
                 <div className='font-mono text-sm'>
-                  {connectionState.clientId || 'N/A'}
+                  {chatState.userId || 'N/A'}
                 </div>
               </div>
               <div className='bg-gray-50 text-black p-3 rounded'>
-                <div className='font-semibold text-gray-600'>Connected At</div>
-                <div>{formatTime(connectionState.connectionTime)}</div>
+                <div className='font-semibold text-gray-600'>Username</div>
+                <div>{chatState.username || 'N/A'}</div>
               </div>
               <div className='bg-gray-50 text-black p-3 rounded'>
-                <div className='font-semibold text-gray-600'>Last Activity</div>
-                <div>{formatTime(connectionState.lastActivity)}</div>
+                <div className='font-semibold text-gray-600'>Users Online</div>
+                <div>{chatState.users.length}</div>
               </div>
             </div>
 
@@ -232,7 +222,7 @@ export default function Home() {
                 </label>
                 <button
                   onClick={handlePing}
-                  disabled={!connectionState.isConnected}
+                  disabled={!chatState.isConnected}
                   className='w-full px-4 py-2 bg-yellow-500 text-black rounded-lg hover:bg-yellow-600 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2'
                 >
                   <Zap size={20} />
@@ -247,7 +237,7 @@ export default function Home() {
                 </label>
                 <button
                   onClick={handleGetClients}
-                  disabled={!connectionState.isConnected}
+                  disabled={!chatState.isConnected}
                   className='w-full px-4 py-2 bg-purple-500 text-black rounded-lg hover:bg-purple-600 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2'
                 >
                   <Users size={20} />
@@ -267,14 +257,12 @@ export default function Home() {
                     onChange={(e) => setEchoMessage(e.target.value)}
                     placeholder='Message to echo'
                     className='flex-1 px-3 py-2 border text-black border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
-                    disabled={!connectionState.isConnected}
+                    disabled={!chatState.isConnected}
                     onKeyPress={(e) => e.key === 'Enter' && handleEcho()}
                   />
                   <button
                     onClick={handleEcho}
-                    disabled={
-                      !connectionState.isConnected || !echoMessage.trim()
-                    }
+                    disabled={!chatState.isConnected || !echoMessage.trim()}
                     className='px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2'
                   >
                     <MessageCircle size={20} />
@@ -295,13 +283,13 @@ export default function Home() {
                     onChange={(e) => setBroadcastMessage(e.target.value)}
                     placeholder='Message to broadcast'
                     className='flex-1 px-3 py-2 border text-black border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
-                    disabled={!connectionState.isConnected}
+                    disabled={!chatState.isConnected}
                     onKeyPress={(e) => e.key === 'Enter' && handleBroadcast()}
                   />
                   <button
                     onClick={handleBroadcast}
                     disabled={
-                      !connectionState.isConnected || !broadcastMessage.trim()
+                      !chatState.isConnected || !broadcastMessage.trim()
                     }
                     className='px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2'
                   >
@@ -318,7 +306,7 @@ export default function Home() {
             <div className='flex justify-between items-center mb-4'>
               <h2 className='text-xl text-black font-semibold flex items-center gap-2'>
                 <MessageCircle className='text-indigo-500' size={24} />
-                Messages ({messages.length})
+                Messages ({chatState.messages.length})
               </h2>
               <button
                 onClick={clearMessages}
@@ -330,34 +318,34 @@ export default function Home() {
             </div>
 
             <div className='max-h-96 overflow-y-auto space-y-2'>
-              {messages.length === 0 ? (
+              {chatState.messages.length === 0 ? (
                 <div className='text-black text-center py-8'>
                   No messages yet. Connect and start sending messages!
                 </div>
               ) : (
-                messages.map((message, index) => (
-                  <div
-                    key={index}
-                    className='border border-gray-200 rounded-lg p-3'
-                  >
-                    <div className='flex justify-between items-start mb-2'>
-                      <div className='flex items-center gap-2'>
-                        <span className='text-lg'>
-                          {getMessageIcon(message.type)}
-                        </span>
-                        <span className='font-semibold text-black'>
-                          {message.type}
+                chatState.messages.map(
+                  (message: ChatMessage, index: number) => (
+                    <div
+                      key={message.id || index}
+                      className='border border-gray-200 rounded-lg p-3'
+                    >
+                      <div className='flex justify-between items-start mb-2'>
+                        <div className='flex items-center gap-2'>
+                          <span className='text-lg'>💬</span>
+                          <span className='font-semibold text-black'>
+                            {message.username}
+                          </span>
+                        </div>
+                        <span className='text-xs text-gray-500'>
+                          {new Date(message.timestamp).toLocaleTimeString()}
                         </span>
                       </div>
-                      <span className='text-xs text-gray-500'>
-                        {new Date(message.timestamp).toLocaleTimeString()}
-                      </span>
+                      <div className='text-sm bg-gray-50 p-2 rounded text-black'>
+                        {message.content}
+                      </div>
                     </div>
-                    <pre className='text-sm bg-gray-50 p-2 rounded overflow-x-auto text-black'>
-                      {JSON.stringify(message.data, null, 2)}
-                    </pre>
-                  </div>
-                ))
+                  )
+                )
               )}
             </div>
           </div>
