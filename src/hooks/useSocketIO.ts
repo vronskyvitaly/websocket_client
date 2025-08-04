@@ -47,12 +47,9 @@ export const useSocketIO = ({
     try {
       socket.current = io(socketUrl, {
         autoConnect: false,
-        transports: ['websocket', 'polling'],
+        transports: ['polling'], // Используем только polling для Vercel
         timeout: 20000,
         forceNew: true,
-        // Добавляем настройки для production
-        upgrade: true,
-        rememberUpgrade: true,
         // Настройки для работы с прокси
         path: '/socket.io/',
         // Дополнительные настройки для стабильности
