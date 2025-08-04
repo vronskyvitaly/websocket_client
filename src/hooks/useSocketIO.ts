@@ -57,6 +57,8 @@ export const useSocketIO = ({
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
+        // Настройки для CORS
+        withCredentials: false,
       })
 
       socket.current.on('connect', () => {
