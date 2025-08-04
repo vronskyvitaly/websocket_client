@@ -1,7 +1,9 @@
 'use client'
 
+import { useRestAPI } from '@/hooks/useRestAPI'
 import { useSocketIO } from '@/hooks/useSocketIO'
 import {
+  AlertCircle,
   Loader2,
   MessageCircle,
   Send,
@@ -18,10 +20,17 @@ export default function ChatPage() {
   const [showUsernameModal, setShowUsernameModal] = useState(true)
   const [isConnecting, setIsConnecting] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
+  const [useRestAPIMode, setUseRestAPIMode] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messageInputRef = useRef<HTMLInputElement>(null)
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Try Socket.IO first, fallback to REST API
+  const socketIO = useSocketIO({ autoConnect: false })
+  const restAPI = useRestAPI({ autoConnect: false })
+
+  // Use the appropriate hook based on connection status
+  const currentHook = useRestAPIMode ? restAPI : socketIO
   const {
     chatState,
     lastError,
@@ -31,7 +40,7 @@ export default function ChatPage() {
     sendMessage,
     sendTyping,
     clearError,
-  } = useSocketIO()
+  } = currentHook
 
   // Auto scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -83,7 +92,12 @@ export default function ChatPage() {
   const handleMessageSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (messageInput.trim() && chatState.isConnected) {
-      sendMessage(messageInput)
+      if (useRestAPIMode) {
+        // For REST API, we need to pass username
+        sendMessage(messageInput, 'text', usernameInput.trim())
+      } else {
+        sendMessage(messageInput)
+      }
       setMessageInput('')
       sendTyping(false)
       setIsTyping(false)
@@ -137,6 +151,19 @@ export default function ChatPage() {
           <h1 className='text-2xl font-bold text-center mb-6 text-gray-800'>
             💬 Welcome to Chat
           </h1>
+
+          {/* Connection mode indicator */}
+          {useRestAPIMode && (
+            <div className='mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg'>
+              <div className='flex items-center gap-2 text-yellow-800'>
+                <AlertCircle size={16} />
+                <span className='text-sm'>
+                  Using REST API mode (WebSocket unavailable)
+                </span>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleUsernameSubmit}>
             <div className='mb-4'>
               <label className='block text-sm font-medium text-gray-700 mb-2'>
@@ -186,6 +213,11 @@ export default function ChatPage() {
             <span className='text-sm text-gray-500'>
               #{chatState.currentRoom}
             </span>
+            {useRestAPIMode && (
+              <span className='text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded'>
+                REST API
+              </span>
+            )}
           </div>
 
           <div className='flex items-center gap-4'>
@@ -210,6 +242,18 @@ export default function ChatPage() {
                 {chatState.users.length} online
               </span>
             </div>
+
+            {/* Mode toggle */}
+            <button
+              onClick={() => {
+                disconnect()
+                setUseRestAPIMode(!useRestAPIMode)
+                setShowUsernameModal(true)
+              }}
+              className='px-3 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600'
+            >
+              Switch to {useRestAPIMode ? 'Socket.IO' : 'REST API'}
+            </button>
 
             <button
               onClick={disconnect}
@@ -250,7 +294,7 @@ export default function ChatPage() {
                 <p>No messages yet. Start the conversation!</p>
               </div>
             ) : (
-              chatState.messages.map((message, index) => (
+              chatState.messages.map((message: any, index: number) => (
                 <div key={message.id || index} className='flex flex-col'>
                   <div
                     className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${getMessageStyle(
@@ -314,7 +358,7 @@ export default function ChatPage() {
           </h3>
 
           <div className='space-y-2'>
-            {chatState.users.map((user) => (
+            {chatState.users.map((user: any) => (
               <div
                 key={user.id}
                 className={`flex items-center gap-3 p-2 rounded ${
@@ -345,5 +389,3 @@ export default function ChatPage() {
     </div>
   )
 }
-
-// fix

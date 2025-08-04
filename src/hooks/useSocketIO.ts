@@ -21,7 +21,7 @@ export const useSocketIO = ({
 }: UseSocketIOProps = {}) => {
   // Use environment variable as fallback
   const socketUrl =
-    url || process.env.NEXT_PUBLIC_SOCKETIO_URL || 'http://localhost:3002'
+    url || process.env.NEXT_PUBLIC_SOCKETIO_URL || 'https://websocket-server-khaki.vercel.app'
   const socket = useRef<Socket<
     ServerToClientEvents,
     ClientToServerEvents
@@ -59,6 +59,9 @@ export const useSocketIO = ({
         reconnectionDelayMax: 5000,
         // Настройки для CORS
         withCredentials: false,
+        // Дополнительные настройки для Vercel
+        upgrade: false, // Отключаем upgrade для Vercel
+        rememberUpgrade: false,
       })
 
       socket.current.on('connect', () => {
@@ -81,7 +84,36 @@ export const useSocketIO = ({
 
       socket.current.on('connect_error', (error) => {
         console.error('❌ Socket.IO connection error:', error)
+        console.error('❌ Error details:', {
+          message: error.message,
+          description: error.description,
+          context: error.context,
+          type: error.type,
+        })
         setLastError(`Failed to connect to chat server: ${error.message}`)
+      })
+
+      socket.current.on('error', (error: string) => {
+        console.error('❌ Socket error:', error)
+        setLastError(error)
+      })
+
+      socket.current.on('connect_timeout', () => {
+        console.error('❌ Socket.IO connection timeout')
+        setLastError(
+          'Connection timeout. Please check your internet connection.'
+        )
+      })
+
+      socket.current.on('reconnect_attempt', (attemptNumber) => {
+        console.log(`🔄 Socket.IO reconnection attempt ${attemptNumber}`)
+      })
+
+      socket.current.on('reconnect_failed', () => {
+        console.error('❌ Socket.IO reconnection failed')
+        setLastError(
+          'Failed to reconnect to chat server after multiple attempts.'
+        )
       })
 
       socket.current.on('connected', (data) => {
@@ -150,11 +182,6 @@ export const useSocketIO = ({
             typingUsers: prev.typingUsers.filter((u) => u !== data.username),
           }))
         }
-      })
-
-      socket.current.on('error', (error: string) => {
-        console.error('❌ Socket error:', error)
-        setLastError(error)
       })
 
       socket.current.connect()
